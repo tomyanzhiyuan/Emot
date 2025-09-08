@@ -1,0 +1,56 @@
+name: emotional_ai
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  # Python version
+  - python=3.11
+  
+  # Core web framework (available via conda)
+  - flask
+  - requests
+  - numpy
+  
+  # Scientific computing (conda-first)
+  - opencv
+  - pillow
+  
+  # PyTorch ecosystem (conda preferred)
+  - pytorch
+  - torchvision
+  - torchaudio
+  
+  # Development tools (conda available)
+  - pytest
+  - black
+  - flake8
+  
+  # Database
+  - sqlalchemy
+  
+  # Utilities
+  - python-dateutil
+  
+  # Packages that must be installed via pip (not available in conda or outdated)
+  - pip
+  - pip:
+      # AI/ML packages primarily on PyPI
+      - openai==1.3.5
+      - transformers==4.35.2
+      - mediapipe==0.10.8
+      
+      # Voice processing (PyPI-only or newer versions)
+      - openai-whisper==20231117
+      - elevenlabs==0.2.26
+      - pydub==0.25.1
+      - soundfile==0.12.1
+      - pyaudio==0.2.11
+      
+      # Web framework extensions
+      - flask-cors==4.0.0
+      - flask-socketio==5.3.6
+      
+      # Other utilities
+      - python-dotenv==1.0.0
+      - uuid==1.30

@@ -1,0 +1,34 @@
+{
+    "server": {
+        "host": "localhost",
+        "port": 5000,
+        "debug": true
+    },
+    "ai": {
+        "openai_model": "gpt-4",
+        "max_tokens": 150,
+        "temperature": 0.7,
+        "system_prompt": "You are an emotionally intelligent AI companion. You respond with empathy, understanding, and emotional awareness. Adapt your tone and responses based on the user's detected emotional state."
+    },
+    "voice": {
+        "elevenlabs_voice": "Bella",
+        "whisper_model": "base",
+        "audio_format": "wav",
+        "sample_rate": 16000
+    },
+    "emotion": {
+        "detection_interval": 0.5,
+        "confidence_threshold": 0.6,
+        "emotions": ["happy", "sad", "angry", "surprised", "fearful", "disgusted", "neutral"]
+    },
+    "session": {
+        "max_history": 50,
+        "session_timeout": 3600,
+        "cleanup_interval": 300
+    },
+    "paths": {
+        "models": "./models",
+        "sessions": "./data/sessions",
+        "audio_cache": "./data/audio_cache"
+    }
+}

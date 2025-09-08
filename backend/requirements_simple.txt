@@ -1,0 +1,22 @@
+# Core web framework
+flask
+flask-cors
+requests
+python-dotenv
+
+# AI libraries
+openai
+numpy
+opencv-python
+mediapipe
+
+# Voice processing
+openai-whisper
+elevenlabs
+pydub
+
+# Data handling
+sqlalchemy
+
+# Development
+pytest

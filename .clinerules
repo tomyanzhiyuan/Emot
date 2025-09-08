@@ -1,0 +1,401 @@
+# Emotional AI Chatbot Project - Cline Development Rules
+
+## 🎯 Project Overview
+This project builds an emotional AI chatbot with 3D avatar, voice interaction, and real-time emotion detection using Python backend, Unity frontend, OpenAI GPT-4, and various AI services.
+
+## 📁 File Organization
+
+### Directory Structure
+```
+Emot/
+├── backend/                 # Python Flask/FastAPI server
+├── unity_client/           # Unity 3D avatar application
+├── models/                 # Local AI models and weights
+├── data/                   # Session data and audio cache
+├── config/                 # Configuration files
+├── docs/                   # Documentation
+├── tests/                  # Unit and integration tests
+└── scripts/                # Utility and setup scripts
+```
+
+### File Naming Conventions
+- Python files: `snake_case.py`
+- Unity C# scripts: `PascalCase.cs`
+- Configuration files: `lowercase.json`, `lowercase.yaml`
+- Documentation: `UPPERCASE.md` for main docs, `lowercase.md` for specific docs
+
+## 🐍 Python Code Standards
+
+### Style Guidelines
+- Follow PEP 8 strictly
+- Use type hints for all function parameters and return values
+- Maximum line length: 88 characters (Black formatter standard)
+- Use docstrings for all classes and functions (Google style)
+- Import order: standard library, third-party, local imports
+
+### Code Structure
+```python
+"""Module docstring describing purpose."""
+
+import os
+import sys
+from typing import Dict, List, Optional
+
+import numpy as np
+import requests
+from flask import Flask
+
+from .local_module import LocalClass
+
+
+class ExampleClass:
+    """Class docstring with purpose and usage."""
+    
+    def __init__(self, param: str) -> None:
+        """Initialize with parameter."""
+        self.param = param
+    
+    def process_data(self, data: Dict[str, Any]) -> Optional[str]:
+        """Process data and return result.
+        
+        Args:
+            data: Input data dictionary
+            
+        Returns:
+            Processed result or None if failed
+            
+        Raises:
+            ValueError: If data is invalid
+        """
+        pass
+```
+
+### Error Handling
+- Use specific exception types, not bare `except:`
+- Log errors with appropriate levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- Return meaningful error messages in API responses
+- Use try-except blocks for external API calls and file operations
+
+### Configuration Management
+- Store API keys in environment variables, never in code
+- Use `config/settings.json` for application settings
+- Validate configuration on startup
+- Provide default values for optional settings
+
+## 🎮 Unity C# Standards
+
+### Naming Conventions
+- Classes: `PascalCase`
+- Methods: `PascalCase`
+- Variables: `camelCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Private fields: `_camelCase`
+
+### Code Structure
+```csharp
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace EmotionalAI
+{
+    /// <summary>
+    /// Handles avatar animation and emotion synchronization.
+    /// </summary>
+    public class AvatarController : MonoBehaviour
+    {
+        [SerializeField] private Animator _animator;
+        [SerializeField] private AudioSource _audioSource;
+        
+        /// <summary>
+        /// Updates avatar emotion based on detected user emotion.
+        /// </summary>
+        /// <param name="emotion">Detected emotion type</param>
+        public void UpdateEmotion(EmotionType emotion)
+        {
+            // Implementation
+        }
+    }
+}
+```
+
+## 🌐 API Design Standards
+
+### REST Endpoint Conventions
+- Use HTTP verbs correctly (GET, POST, PUT, DELETE)
+- Endpoint naming: `/api/v1/resource` or `/api/v1/resource/{id}`
+- Use plural nouns for collections: `/api/v1/sessions`
+- Use consistent response formats
+
+### Response Format
+```json
+{
+    "success": true,
+    "data": {
+        "message": "Hello, I understand you're feeling sad today.",
+        "emotion": "empathetic",
+        "session_id": "uuid-here"
+    },
+    "error": null,
+    "timestamp": "2024-01-01T12:00:00Z"
+}
+```
+
+### Error Response Format
+```json
+{
+    "success": false,
+    "data": null,
+    "error": {
+        "code": "INVALID_INPUT",
+        "message": "Voice input could not be processed",
+        "details": "Audio file format not supported"
+    },
+    "timestamp": "2024-01-01T12:00:00Z"
+}
+```
+
+## 🔒 Security Guidelines
+
+### API Key Management
+- Store in environment variables: `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`
+- Never commit API keys to version control
+- Use `.env` files for local development
+- Validate API keys on application startup
+
+### Data Privacy
+- Don't log sensitive user data (voice recordings, personal information)
+- Implement session cleanup after inactivity
+- Use secure file permissions for session data
+- Encrypt stored conversation history
+
+## 📝 Documentation Standards
+
+### Code Comments
+- Explain WHY, not WHAT
+- Use TODO comments for future improvements: `# TODO: Add emotion intensity scaling`
+- Use FIXME for known issues: `# FIXME: Handle edge case when no face detected`
+
+### Function Documentation
+```python
+def analyze_emotion(frame: np.ndarray, model_path: str) -> Dict[str, float]:
+    """Analyze facial emotion from video frame.
+    
+    Uses MediaPipe Face Mesh to detect facial landmarks and classify
+    emotions using a trained model. Returns confidence scores for
+    each emotion category.
+    
+    Args:
+        frame: RGB image array from webcam
+        model_path: Path to trained emotion classification model
+        
+    Returns:
+        Dictionary mapping emotion names to confidence scores
+        Example: {"happy": 0.8, "sad": 0.1, "neutral": 0.1}
+        
+    Raises:
+        FileNotFoundError: If model file doesn't exist
+        ValueError: If frame is invalid format
+    """
+```
+
+## 🧪 Testing Standards
+
+### Test File Organization
+- Unit tests: `tests/unit/test_module_name.py`
+- Integration tests: `tests/integration/test_feature_name.py`
+- Use pytest for Python testing
+- Use Unity Test Framework for Unity tests
+
+### Test Naming
+```python
+def test_emotion_detection_with_happy_face():
+    """Test emotion detection correctly identifies happy expression."""
+    pass
+
+def test_api_chat_endpoint_returns_valid_response():
+    """Test chat API returns properly formatted response."""
+    pass
+```
+
+## 🐍 Environment Management
+
+### Conda Environment Setup
+- Use conda environment named `emotional_ai` with Python 3.11
+- Activate environment: `conda activate emotional_ai`
+- Install dependencies via pip within the conda environment
+- This ensures better compatibility with AI/ML packages
+
+### Package Installation Order
+1. Core web framework packages first (Flask, requests, etc.)
+2. AI/ML packages (OpenAI, numpy, opencv-python)
+3. Specialized packages (whisper, elevenlabs, mediapipe) as needed
+4. Development tools last (pytest, black, flake8)
+
+## 🔄 Git Workflow & Best Practices
+
+### Repository Setup
+- Use comprehensive `.gitignore` to exclude sensitive files and build artifacts
+- Never commit API keys, passwords, or sensitive data
+- Keep `.env.template` updated but never commit actual `.env` files
+- Use Git LFS for large model files (>100MB)
+
+### Commit Messages
+- Use conventional commits format: `type(scope): description`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+- Examples:
+  - `feat(llm): add emotion detection pipeline`
+  - `fix(api): resolve session timeout issue`
+  - `docs(readme): update setup instructions`
+  - `refactor(session): improve database connection handling`
+
+### Branch Strategy
+- `main`: Production-ready code, protected branch
+- `develop`: Integration branch for features
+- `feature/*`: Individual feature development (`feature/voice-processing`)
+- `bugfix/*`: Bug fixes (`bugfix/session-cleanup`)
+- `hotfix/*`: Critical production fixes
+- `release/*`: Release preparation branches
+
+### Branch Naming Conventions
+- Use lowercase with hyphens: `feature/emotion-detection`
+- Include issue numbers when applicable: `feature/123-voice-integration`
+- Keep names descriptive but concise
+
+### Pre-commit Checklist
+- [ ] Run tests: `python test_backend.py`
+- [ ] Format code: `black .` (if using Black formatter)
+- [ ] Lint code: `flake8` (if using Flake8)
+- [ ] Update documentation if needed
+- [ ] Check `.gitignore` covers new file types
+- [ ] Verify no sensitive data in commit
+- [ ] Test locally before pushing
+
+### Pull Request Guidelines
+- Create descriptive PR titles and descriptions
+- Reference related issues: "Closes #123"
+- Include testing instructions
+- Request appropriate reviewers
+- Ensure CI/CD checks pass
+- Keep PRs focused and reasonably sized
+
+### File Management
+- Keep repository clean with proper `.gitignore`
+- Remove unused files and dependencies
+- Organize files according to project structure
+- Use meaningful file and directory names
+
+### Security Practices
+- Never commit secrets, API keys, or credentials
+- Use environment variables for configuration
+- Regularly rotate API keys and update `.env.template`
+- Review commits for accidental sensitive data exposure
+- Use `.env.example` or `.env.template` for documentation
+
+### Large Files and Models
+- Use Git LFS for files >100MB
+- Store large models in `models/` directory
+- Document model sources and versions
+- Consider external storage for very large datasets
+
+### Collaboration Guidelines
+- Sync with `main` branch regularly
+- Communicate breaking changes clearly
+- Use meaningful commit messages for team understanding
+- Tag releases with semantic versioning (v1.0.0)
+- Maintain clean commit history (squash when appropriate)
+
+## 📈 Project Roadmap & Development Phases
+
+### Phase 1: Core Backend Infrastructure ✅ COMPLETED
+- [x] Project structure and directory organization
+- [x] Conda environment setup with Python 3.11
+- [x] Flask API server with RESTful endpoints
+- [x] GPT-4o-mini integration with emotional context awareness
+- [x] Session management with SQLite database and file fallback
+- [x] Comprehensive error handling and logging
+- [x] Testing framework and automated tests
+- [x] Documentation (README, .clinerules, .gitignore)
+- [x] Environment configuration and security practices
+
+### Phase 2: Voice Processing Pipeline 🚧 NEXT
+- [ ] OpenAI Whisper integration for speech-to-text
+- [ ] ElevenLabs API integration for text-to-speech
+- [ ] Voice activity detection (VAD) system
+- [ ] Audio streaming endpoints and real-time processing
+- [ ] Audio file format handling (WAV, MP3, OGG)
+- [ ] Voice emotion modulation based on AI response tone
+- [ ] Audio caching and cleanup mechanisms
+- [ ] Voice processing API endpoints
+
+### Phase 3: Real-time Emotion Detection 📋 PLANNED
+- [ ] MediaPipe Face Mesh integration
+- [ ] Webcam access and video stream processing
+- [ ] Facial landmark detection and analysis
+- [ ] Emotion classification model (7 basic emotions)
+- [ ] Real-time emotion detection pipeline
+- [ ] Emotion confidence scoring and filtering
+- [ ] Integration with chat API for emotion-aware responses
+- [ ] Emotion detection API endpoints
+
+### Phase 4: Unity 3D Avatar System 📋 PLANNED
+- [ ] Unity 2022.3 LTS project setup
+- [ ] Ready Player Me SDK integration
+- [ ] 3D avatar creation and customization
+- [ ] Avatar animation system and state machine
+- [ ] Lip-sync integration with TTS audio
+- [ ] Emotion-based facial expressions and gestures
+- [ ] Unity-Python REST API client
+- [ ] Real-time avatar response synchronization
+
+### Phase 5: Advanced Features & Integration 📋 PLANNED
+- [ ] End-to-end system integration testing
+- [ ] Performance optimization and caching
+- [ ] Advanced emotion analysis (intensity, mixed emotions)
+- [ ] Conversation context and memory improvements
+- [ ] Multi-modal interaction (voice + text + visual)
+- [ ] User preference learning and adaptation
+- [ ] Analytics and usage tracking
+- [ ] Deployment configuration and containerization
+
+### Phase 6: Polish & Production Readiness 📋 FUTURE
+- [ ] Comprehensive testing suite (unit, integration, e2e)
+- [ ] Performance benchmarking and optimization
+- [ ] Security audit and penetration testing
+- [ ] User interface improvements and accessibility
+- [ ] Documentation for end users
+- [ ] CI/CD pipeline setup
+- [ ] Production deployment guides
+- [ ] Monitoring and logging infrastructure
+
+## 🎯 Current Development Focus
+
+### Immediate Next Steps (Phase 2)
+1. **Voice Input Processing**
+   - Install and configure OpenAI Whisper
+   - Create voice recording and transcription endpoints
+   - Implement real-time audio streaming
+
+2. **Voice Output Generation**
+   - Set up ElevenLabs API integration
+   - Create text-to-speech endpoints with emotion modulation
+   - Implement audio playback and streaming
+
+3. **Voice Pipeline Integration**
+   - Connect voice input/output with existing chat system
+   - Add voice-specific error handling and fallbacks
+   - Create comprehensive voice processing tests
+
+### Technical Priorities
+- Maintain backward compatibility with existing text-based API
+- Ensure real-time performance for voice interactions
+- Implement proper audio format handling and conversion
+- Add comprehensive logging for voice processing pipeline
+- Create fallback mechanisms for voice service failures
+
+### Architecture Considerations
+- Keep voice processing modular and loosely coupled
+- Design for scalability and concurrent voice sessions
+- Implement proper resource management for audio processing
+- Consider WebSocket connections for real-time voice streaming
+- Plan for future multi-language voice support

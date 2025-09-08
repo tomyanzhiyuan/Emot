@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotional AI Chatbot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🤖 Emotional AI Chatbot</h1>
+            <p>An empathetic AI companion that understands your emotions</p>
+        </header>
+
+        <div class="chat-container">
+            <div class="emotion-selector">
+                <label for="emotion-select">Current Emotion:</label>
+                <select id="emotion-select">
+                    <option value="neutral">😐 Neutral</option>
+                    <option value="happy">😊 Happy</option>
+                    <option value="sad">😢 Sad</option>
+                    <option value="angry">😠 Angry</option>
+                    <option value="surprised">😲 Surprised</option>
+                    <option value="fearful">😰 Fearful</option>
+                    <option value="disgusted">🤢 Disgusted</option>
+                </select>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="message ai-message">
+                    <div class="message-content">
+                        <strong>Emot:</strong> Hello! I'm your emotional AI companion. How are you feeling today? 😊
+                    </div>
+                    <div class="message-time">Just now</div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="Type your message here..." 
+                        maxlength="500"
+                    >
+                    <button id="send-button" type="button">
+                        <span class="send-icon">➤</span>
+                        Send
+                    </button>
+                </div>
+                <div class="input-info">
+                    <span id="char-count">0/500</span>
+                    <span class="session-info">Session: <span id="session-id">Connecting...</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="connection-status" id="connection-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting to server...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>AI is thinking...</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
