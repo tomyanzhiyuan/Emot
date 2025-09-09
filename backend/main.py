@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from llm_handler import LLMHandler
 from session_manager import SessionManager
+from voice_processor import VoiceProcessor
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +30,7 @@ CORS(app)
 # Initialize components
 llm_handler = LLMHandler()
 session_manager = SessionManager()
+voice_processor = VoiceProcessor()
 
 
 def create_response(success: bool, data: Any = None, error: Dict = None) -> Dict:
@@ -167,6 +169,199 @@ def create_session():
             error={
                 "code": "INTERNAL_ERROR",
                 "message": "Failed to create session",
+                "details": str(e)
+            }
+        )), 500
+
+
+@app.route('/api/v1/voice/transcribe', methods=['POST'])
+def transcribe_audio():
+    """Transcribe audio to text using Whisper.
+    
+    Expected form data:
+    - audio: Audio file (WAV, MP3, etc.)
+    """
+    try:
+        if 'audio' not in request.files:
+            return jsonify(create_response(
+                False,
+                error={
+                    "code": "INVALID_INPUT",
+                    "message": "Audio file is required",
+                    "details": "Request must include 'audio' file"
+                }
+            )), 400
+        
+        audio_file = request.files['audio']
+        if audio_file.filename == '':
+            return jsonify(create_response(
+                False,
+                error={
+                    "code": "INVALID_INPUT",
+                    "message": "No audio file selected",
+                    "details": "Audio file cannot be empty"
+                }
+            )), 400
+        
+        # Read audio data
+        audio_data = audio_file.read()
+        
+        # Determine audio format from filename
+        audio_format = audio_file.filename.split('.')[-1].lower() if '.' in audio_file.filename else 'wav'
+        
+        # Transcribe audio
+        transcribed_text = voice_processor.transcribe_audio(audio_data, audio_format)
+        
+        if transcribed_text:
+            return jsonify(create_response(
+                True,
+                {
+                    "text": transcribed_text,
+                    "audio_format": audio_format
+                }
+            ))
+        else:
+            return jsonify(create_response(
+                False,
+                error={
+                    "code": "TRANSCRIPTION_FAILED",
+                    "message": "Failed to transcribe audio",
+                    "details": "Audio could not be processed by Whisper"
+                }
+            )), 500
+            
+    except Exception as e:
+        logger.error(f"Error in transcribe endpoint: {str(e)}")
+        return jsonify(create_response(
+            False,
+            error={
+                "code": "INTERNAL_ERROR",
+                "message": "Failed to transcribe audio",
+                "details": str(e)
+            }
+        )), 500
+
+
+@app.route('/api/v1/voice/synthesize', methods=['POST'])
+def synthesize_speech():
+    """Synthesize speech from text using ElevenLabs.
+    
+    Expected JSON payload:
+    {
+        "text": "Text to convert to speech",
+        "emotion": "optional_emotion_context",
+        "voice": "optional_voice_name"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'text' not in data:
+            return jsonify(create_response(
+                False,
+                error={
+                    "code": "INVALID_INPUT",
+                    "message": "Text is required",
+                    "details": "Request must include 'text' field"
+                }
+            )), 400
+        
+        text = data['text']
+        emotion = data.get('emotion', 'neutral')
+        voice = data.get('voice')
+        
+        # Generate speech
+        audio_data = voice_processor.synthesize_speech(text, emotion, voice)
+        
+        if audio_data:
+            # Save to cache for serving
+            import uuid
+            filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
+            cache_path = voice_processor.save_audio_to_cache(audio_data, filename)
+            
+            return jsonify(create_response(
+                True,
+                {
+                    "audio_url": f"/api/v1/voice/audio/{filename}",
+                    "text": text,
+                    "emotion": emotion,
+                    "voice": voice or voice_processor.elevenlabs_voice
+                }
+            ))
+        else:
+            return jsonify(create_response(
+                False,
+                error={
+                    "code": "SYNTHESIS_FAILED",
+                    "message": "Failed to synthesize speech",
+                    "details": "Text could not be converted to speech"
+                }
+            )), 500
+            
+    except Exception as e:
+        logger.error(f"Error in synthesize endpoint: {str(e)}")
+        return jsonify(create_response(
+            False,
+            error={
+                "code": "INTERNAL_ERROR",
+                "message": "Failed to synthesize speech",
+                "details": str(e)
+            }
+        )), 500
+
+
+@app.route('/api/v1/voice/audio/<filename>', methods=['GET'])
+def serve_audio(filename: str):
+    """Serve cached audio files."""
+    try:
+        from flask import send_file
+        import os.path
+        
+        cache_dir = voice_processor.audio_cache_dir
+        file_path = cache_dir / filename
+        
+        if not file_path.exists():
+            return jsonify(create_response(
+                False,
+                error={
+                    "code": "FILE_NOT_FOUND",
+                    "message": "Audio file not found",
+                    "details": f"File {filename} does not exist"
+                }
+            )), 404
+        
+        return send_file(
+            str(file_path),
+            mimetype='audio/mpeg',
+            as_attachment=False
+        )
+        
+    except Exception as e:
+        logger.error(f"Error serving audio file {filename}: {str(e)}")
+        return jsonify(create_response(
+            False,
+            error={
+                "code": "INTERNAL_ERROR",
+                "message": "Failed to serve audio file",
+                "details": str(e)
+            }
+        )), 500
+
+
+@app.route('/api/v1/voice/status', methods=['GET'])
+def voice_status():
+    """Get voice processing system status."""
+    try:
+        status = voice_processor.get_status()
+        return jsonify(create_response(True, status))
+        
+    except Exception as e:
+        logger.error(f"Error getting voice status: {str(e)}")
+        return jsonify(create_response(
+            False,
+            error={
+                "code": "INTERNAL_ERROR",
+                "message": "Failed to get voice status",
                 "details": str(e)
             }
         )), 500

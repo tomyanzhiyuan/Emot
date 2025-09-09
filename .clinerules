@@ -318,15 +318,28 @@ def test_api_chat_endpoint_returns_valid_response():
 - [x] Documentation (README, .clinerules, .gitignore)
 - [x] Environment configuration and security practices
 
-### Phase 2: Voice Processing Pipeline 🚧 NEXT
-- [ ] OpenAI Whisper integration for speech-to-text
-- [ ] ElevenLabs API integration for text-to-speech
-- [ ] Voice activity detection (VAD) system
-- [ ] Audio streaming endpoints and real-time processing
-- [ ] Audio file format handling (WAV, MP3, OGG)
-- [ ] Voice emotion modulation based on AI response tone
-- [ ] Audio caching and cleanup mechanisms
-- [ ] Voice processing API endpoints
+### Phase 2: Voice Processing Pipeline ✅ COMPLETED
+- [x] OpenAI Whisper integration for speech-to-text
+- [x] Voice processing API endpoints and real-time processing
+- [x] Audio file format handling (WAV, MP3, OGG, WebM)
+- [x] Voice emotion modulation based on AI response tone
+- [x] Audio caching and cleanup mechanisms
+- [x] Coqui TTS integration with Azure fallback
+- [x] Streaming audio pipeline foundation
+
+### Phase 2.5: Call Interface & 3D Avatar System 🚧 CURRENT PRIORITY
+- [ ] Transform chat interface to call interface layout
+- [ ] Add "Click to Enter Call" button after AI greeting
+- [ ] Implement WebAudio context unlock on user gesture
+- [ ] Create large 3D avatar container (16:9 responsive)
+- [ ] Set up Three.js scene for VRM 1.0 avatar rendering
+- [ ] Integrate Ready Player Me for avatar creation
+- [ ] Implement call state machine (IDLE → GREETING → CALL_ACTIVE)
+- [ ] Add streaming TTS with real-time lip-sync
+- [ ] Implement phoneme-to-viseme mapping (ARKit blendshapes)
+- [ ] Add call controls (mute, volume, end call)
+- [ ] Optimize for <800ms LLM, <300ms TTS, ±60ms lip-sync
+- [ ] Test complete call experience end-to-end
 
 ### Phase 3: Real-time Emotion Detection 📋 PLANNED
 - [ ] MediaPipe Face Mesh integration
@@ -348,12 +361,16 @@ def test_api_chat_endpoint_returns_valid_response():
 - [ ] Unity-Python REST API client
 - [ ] Real-time avatar response synchronization
 
-### Phase 5: Advanced Features & Integration 📋 PLANNED
-- [ ] End-to-end system integration testing
-- [ ] Performance optimization and caching
+### Phase 5: Voice Cloning & Advanced Features 📋 PLANNED
+- [ ] Voice sample collection interface (5-10 minute recordings)
+- [ ] Coqui TTS voice cloning model training
+- [ ] Consent and privacy management system
+- [ ] Voice model storage with encryption
+- [ ] Multi-voice selection and management
+- [ ] Voice cloning API endpoints
+- [ ] Loved ones voice integration
 - [ ] Advanced emotion analysis (intensity, mixed emotions)
 - [ ] Conversation context and memory improvements
-- [ ] Multi-modal interaction (voice + text + visual)
 - [ ] User preference learning and adaptation
 - [ ] Analytics and usage tracking
 - [ ] Deployment configuration and containerization
@@ -399,3 +416,105 @@ def test_api_chat_endpoint_returns_valid_response():
 - Implement proper resource management for audio processing
 - Consider WebSocket connections for real-time voice streaming
 - Plan for future multi-language voice support
+
+## 🎭 3D Avatar & Call Interface Standards
+
+### Avatar Specifications
+- **Style**: Stylized-realistic (not cartoon, avoids uncanny valley)
+- **Format**: VRM 1.0 with humanoid rig and ARKit blendshapes
+- **Materials**: PBR (physically-based) skin, hair, eyes for realism
+- **Appearance**: Neutral, customizable (face, skin tone, hair)
+- **Clothing**: Casual, neutral outfit with studio lighting
+- **Animations**: Breathing, blinking, micro-movements for natural presence
+
+### Call Interface Requirements
+- **Layout**: 16:9 responsive desktop, 4:3 mobile with letterboxing
+- **Avatar Container**: Main screen focus, full-width with proper aspect ratio
+- **Call Controls**: Bottom overlay (mute, volume, end call)
+- **State Machine**: IDLE → GREETING → CTA_VISIBLE → CALL_ACTIVE
+- **Audio Unlock**: "Click to Enter Call" button unlocks WebAudio context
+- **Transcript**: Toggle display, default OFF during calls
+
+### Performance Targets
+- **LLM First Token**: <800ms response time
+- **TTS First Audio**: <300ms after receiving text
+- **Avatar Lip-Sync**: Frame-accurate within ±60ms of audio
+- **GPU Usage**: <30% on typical laptop
+- **Frame Rate**: Stable 60fps avatar rendering
+- **Audio Latency**: <1.2s end-to-end conversation response
+
+### Technical Stack Decisions
+- **3D Renderer**: Three.js WebGL for browser compatibility
+- **Avatar Format**: VRM 1.0 (Ready Player Me compatible)
+- **TTS Primary**: Coqui TTS (self-hosted, cost-effective)
+- **TTS Fallback**: Azure/Edge TTS (reliability backup)
+- **Lip-Sync**: Phoneme-to-viseme mapping with ARKit blendshapes
+- **Audio**: Opus streaming, WAV archival, WebAudio context
+
+## 🔊 Voice Cloning Standards
+
+### Sample Requirements
+- **Demo Quality**: 30-60 seconds (basic fidelity, unstable prosody)
+- **Good Quality**: 5-10 minutes (stable prosody, recommended v1)
+- **Premium Quality**: 30-60 minutes (high fidelity, varied content)
+- **Audio Specs**: WAV, mono, 16-48kHz, 24-bit, quiet environment
+- **Content**: Phonetically diverse script for better voice quality
+
+### Privacy & Consent Framework
+- **Explicit Consent**: Voice owner must provide clear permission
+- **Consent Ledger**: Track permissions per voice with timestamps
+- **Local-First Storage**: Voice models stored locally when possible
+- **Encryption**: All voice data encrypted at rest
+- **Easy Deletion**: One-click removal of voice models and data
+- **Scoped Usage**: Cloned voices only for intended emotional support
+- **No Impersonation**: Clear disclosure when using cloned voices
+
+### Voice Cloning Architecture
+- **Training Pipeline**: Coqui TTS voice cloning with fine-tuning
+- **Model Storage**: Encrypted, versioned, with metadata
+- **TTS Adapter Pattern**: Swappable engines (Coqui, Azure, cloned voices)
+- **Quality Tiers**: Multiple fidelity levels based on sample duration
+- **Usage Tracking**: Log usage for consent compliance and analytics
+
+## 🎮 Call Experience Standards
+
+### State Management
+```
+IDLE (avatar visible, chat disabled)
+  ↓
+GREETING (AI introduces itself)
+  ↓
+CTA_VISIBLE ("Click to Enter Call" button)
+  ↓ (onClick)
+CALL_STARTING (WebAudio unlock, TTS warmup)
+  ↓
+CALL_ACTIVE (conversation mode)
+  ↓ (during AI response)
+SPEAKING (avatar lip-sync, "Speaking..." indicator)
+  ↓ (response complete)
+LISTENING (avatar idle, waiting for user)
+```
+
+### Audio Pipeline Events
+- `assistant_message(text, metadata)` - New AI response
+- `tts_stream_start(voice, ssml)` - TTS begins processing
+- `tts_audio_chunk(buffer, timestamp)` - Audio data chunk
+- `viseme_chunk([{time, visemeId, weight}])` - Lip-sync data
+- `tts_end()` - Audio generation complete
+- `avatar_state(update)` - Avatar state change
+
+### Browser Compatibility
+- **Audio Unlock**: Single user gesture unlocks WebAudio across browsers
+- **Safari iOS**: Test audio resume on visibility change
+- **Chrome**: Verify autoplay policies compliance
+- **Firefox**: Test WebGL performance and audio streaming
+- **Mobile**: Optimize for touch interfaces and limited GPU
+
+### Testing Checklist
+- [ ] Audio unlock works across Chrome/Safari/Firefox
+- [ ] First-token to first-audio <1.2s end-to-end
+- [ ] Lip-sync drift under ±60ms during 30s speech
+- [ ] Graceful degradation under 3-5% packet loss
+- [ ] GPU usage <30% with dynamic LOD
+- [ ] Mobile responsiveness and touch controls
+- [ ] Voice cloning consent flow and data protection

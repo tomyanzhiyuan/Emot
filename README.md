@@ -1,58 +1,71 @@
-# Emotional AI Chatbot with 3D Avatar
+# Emotional AI Companion with 3D Avatar & Voice Cloning
 
-An emotionally intelligent AI companion that interacts through voice, responds empathetically using GPT-4, displays a 3D animated avatar, and detects user emotions via webcam.
+An immersive AI companion that provides emotional support through realistic 3D avatar conversations, voice interaction, and the ability to clone voices of loved ones for meaningful connections across distances.
 
-## 🎯 Project Overview
+## 🎯 Project Vision
 
-This project creates an AI companion that goes beyond text-based chat by providing:
+This project creates a revolutionary AI companion experience that transforms digital interaction by providing:
 
-- **Emotional Intelligence**: Detects and responds to user emotions
-- **Voice Interaction**: Speech-to-text input and text-to-speech output
-- **3D Avatar**: Unity-based animated character with Ready Player Me
-- **Memory**: Persistent conversation history and context
-- **Real-time Processing**: Live emotion detection and response
+- **3D Avatar Call Interface**: FaceTime-style conversations with a realistic 3D avatar
+- **Voice Cloning Technology**: Clone voices of loved ones to overcome distance and time barriers
+- **Emotional Intelligence**: AI that understands and responds to your emotional state
+- **Real-time Conversation**: Natural voice interaction with lip-synced avatar responses
+- **Immersive Presence**: Feel like you're talking to a real person, not a chatbot
 
-## 🏗️ Architecture
+## 🌟 Core User Experience
 
+### **Call-Based Interaction Flow:**
+1. **Landing**: 3D avatar visible with idle animations, chat disabled
+2. **AI Greeting**: "Hello! I'm your emotional AI companion..."
+3. **Call Invitation**: "Click to Enter Call" button appears
+4. **Call Mode**: Full-screen avatar, real-time voice conversation
+5. **Natural Dialogue**: Speak or type → Avatar responds with voice + lip-sync
+
+### **Voice Cloning for Loved Ones:**
+- **Emotional Connection**: Talk to family/friends in their own voice
+- **Long-Distance Support**: Bridge time zones and physical separation
+- **Comfort & Healing**: Familiar voices during difficult times
+- **Accessibility**: For those who've lost their voice or loved ones
+
+## 🏗️ Technical Architecture
+
+### **Call Interface System:**
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Unity Client  │◄──►│  Python Backend │◄──►│   AI Services   │
-│   (3D Avatar)   │    │   (Flask API)   │    │ (OpenAI, etc.)  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  Voice I/O      │    │  Session Mgmt   │    │  Emotion Det.   │
-│  (Whisper/TTS)  │    │  (SQLite/JSON)  │    │  (MediaPipe)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────┐
+│  🤖 3D Avatar (Main Focus)              │
+│  - Stylized-realistic VRM 1.0           │
+│  - Real-time lip-sync                   │
+│  - Emotion-responsive expressions       │
+│  - Natural idle animations              │
+└─────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  📞 Call Controls (Bottom Overlay)      │
+│  [🎤 Mute] [🔊 Volume] [📞 End Call]    │
+└─────────────────────────────────────────┘
 ```
+
+### **Streaming Audio Pipeline:**
+```
+User Input → LLM Response → Streaming TTS → Avatar Lip-Sync
+     ↑                                              ↓
+Voice Cloning ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+```
+
+### **Performance Targets:**
+- **LLM First Token**: <800ms
+- **TTS First Audio**: <300ms after receiving text
+- **Avatar Lip-Sync**: Frame-accurate within ±60ms
+- **GPU Usage**: <30% on typical laptop, 60fps
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - **Python 3.11** (via Conda)
-- **Unity 2022.3 LTS** or newer
 - **OpenAI API Key** (required)
-- **ElevenLabs API Key** (optional, for voice synthesis)
-- **Webcam and Microphone** (for full functionality)
+- **Modern Browser** (Chrome, Firefox, Safari)
+- **Microphone** (for voice interaction)
 
 ### 1. Environment Setup
-
-**Option A: Conda-Native Setup (Recommended)**
-
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd Emot
-
-# Create conda environment from file (handles most dependencies)
-conda env create -f environment.yml
-conda activate emotional_ai
-```
-
-**Option B: Manual Setup**
-
 ```bash
 # Clone the repository
 git clone <your-repo-url>
@@ -62,40 +75,37 @@ cd Emot
 conda create -n emotional_ai python=3.11 -y
 conda activate emotional_ai
 
-# Install Python dependencies
+# Install dependencies
 cd backend
 pip install -r requirements_simple.txt
 ```
 
 ### 2. Configuration
-
 ```bash
 # Copy environment template
 cp .env.template .env
 
 # Edit .env file with your API keys
-# At minimum, set your OpenAI API key:
 OPENAI_API_KEY=sk-your-actual-openai-key-here
+FLASK_PORT=5100
 ```
 
-### 3. Test Backend
-
+### 3. Start the Experience
 ```bash
-# Run backend tests
-cd backend
-python test_backend.py
-```
-
-### 4. Start the Server
-
-```bash
-# Start the Flask backend
+# Start the backend server
 cd backend
 conda activate emotional_ai
 python main.py
+
+# Open the web interface
+open ../web_interface/index.html
 ```
 
-The server will start at `http://localhost:5000`
+### 4. Enter Call Mode
+1. Wait for AI greeting message
+2. Click **"Click to Enter Call"** button
+3. Grant microphone permission when prompted
+4. Start your conversation with the 3D avatar!
 
 ## 📁 Project Structure
 
@@ -105,212 +115,201 @@ Emot/
 │   ├── main.py             # Main Flask application
 │   ├── llm_handler.py      # GPT-4 integration
 │   ├── session_manager.py  # Conversation persistence
-│   ├── test_backend.py     # Backend tests
+│   ├── voice_processor.py  # Whisper + TTS integration
 │   └── requirements*.txt   # Python dependencies
-├── unity_client/           # Unity 3D avatar application
-├── models/                 # Local AI models and weights
+├── web_interface/          # 3D Avatar call interface
+│   ├── index.html          # Main call interface
+│   ├── style.css           # Call interface styling
+│   ├── script.js           # Avatar + voice functionality
+│   └── avatar/             # 3D avatar assets
+├── models/                 # Voice cloning models
 ├── data/                   # Session data and audio cache
-│   ├── sessions/          # Conversation history
-│   └── audio_cache/       # Temporary audio files
 ├── config/                 # Configuration files
-│   └── settings.json      # Application settings
-├── docs/                   # Documentation
-├── tests/                  # Unit and integration tests
-├── scripts/               # Utility and setup scripts
-├── .env                   # Environment variables (create from template)
-├── .env.template          # Environment template
-└── .clinerules           # Development guidelines
+└── .clinerules            # Development guidelines
 ```
 
 ## 🔧 API Endpoints
 
-### Core Endpoints
-
+### Core Conversation
 - `GET /api/v1/health` - Health check
 - `POST /api/v1/chat` - Send message, get AI response
-- `POST /api/v1/sessions` - Create new conversation session
-- `GET /api/v1/sessions/{id}` - Get conversation history
+- `POST /api/v1/sessions` - Create conversation session
 
-### Request/Response Format
+### Voice Processing
+- `POST /api/v1/voice/transcribe` - Speech-to-text (Whisper)
+- `POST /api/v1/voice/synthesize` - Text-to-speech with emotion
+- `GET /api/v1/voice/audio/{filename}` - Serve audio files
+- `GET /api/v1/voice/status` - Voice system status
 
-**Chat Request:**
+### Future: Voice Cloning
+- `POST /api/v1/voice/clone/upload` - Upload voice samples
+- `POST /api/v1/voice/clone/train` - Train voice model
+- `GET /api/v1/voice/clone/status` - Training status
 
-```json
-{
-    "message": "I'm feeling sad today",
-    "session_id": "optional-session-id",
-    "emotion": "sad"
-}
-```
+## 🎭 3D Avatar System
 
-**Chat Response:**
+### **Avatar Specifications:**
+- **Style**: Stylized-realistic (not cartoon, not uncanny valley)
+- **Format**: VRM 1.0 with humanoid rig and blendshapes
+- **Materials**: PBR (physically-based) skin, hair, eyes
+- **Customization**: Face, skin tone, hair (neutral default)
+- **Clothing**: Casual, neutral outfit with studio lighting
 
-```json
-{
-    "success": true,
-    "data": {
-        "message": "I'm here for you. What's making you feel sad?",
-        "session_id": "uuid-here",
-        "emotion": "empathetic"
-    },
-    "error": null,
-    "timestamp": "2024-01-01T12:00:00Z"
-}
-```
+### **Animation Features:**
+- **Lip-Sync**: Phoneme-to-viseme mapping from TTS
+- **Expressions**: Emotion-responsive facial expressions
+- **Idle Behavior**: Natural breathing, blinking, micro-movements
+- **Gaze**: Eye contact and natural looking patterns
 
-## 🧪 Testing
+### **Technical Stack:**
+- **Renderer**: Three.js WebGL
+- **Avatar Format**: VRM 1.0 (Ready Player Me compatible)
+- **Animations**: Mixamo + custom blendshapes
+- **Lip-Sync**: ARKit visemes (12-22 mouth shapes)
 
-### Backend Tests
+## 🔊 Voice Technology
 
+### **Text-to-Speech:**
+- **Primary**: Coqui TTS (self-hosted, cost-effective)
+- **Fallback**: Azure/Edge TTS (reliability backup)
+- **Quality**: Single premium voice (Jofish or equivalent)
+- **Streaming**: Chunked audio output for low latency
+
+### **Voice Cloning:**
+- **Sample Requirements**: 5-10 minutes of clean speech
+- **Quality Tiers**: 
+  - Demo: 30-60 seconds (basic quality)
+  - Good: 5-10 minutes (stable prosody)
+  - Premium: 30-60 minutes (high fidelity)
+- **Privacy**: Local-first, encrypted storage, consent required
+
+## 🎮 Call Interface Features
+
+### **Call States:**
+- **IDLE**: Avatar visible, chat disabled
+- **GREETING**: AI introduces itself
+- **CTA_VISIBLE**: "Click to Enter Call" button shown
+- **CALL_ACTIVE**: Full conversation mode
+- **SPEAKING**: Avatar talking with lip-sync
+- **LISTENING**: Avatar waiting for user input
+
+### **Call Controls:**
+- **Mute/Unmute**: Toggle microphone
+- **Volume**: Adjust avatar voice
+- **End Call**: Return to idle state
+- **Transcript**: Toggle conversation text (default off)
+
+### **Audio Features:**
+- **WebAudio Context**: Unlocked by "Click to Enter Call"
+- **Streaming Playback**: Low-latency audio chunks
+- **Voice Activity**: Automatic speech detection
+- **Echo Cancellation**: Clean audio processing
+
+## 🧪 Testing & Performance
+
+### **Call Experience Testing:**
 ```bash
-cd backend
-conda activate emotional_ai
-python test_backend.py
-```
+# Test voice processing
+curl -X POST http://localhost:5100/api/v1/voice/status
 
-### Manual API Testing
-
-```bash
-# Test health endpoint
-curl http://localhost:5100/api/v1/health
-
-# Test chat endpoint
-curl -X POST http://localhost:5100/api/v1/chat \
+# Test TTS synthesis
+curl -X POST http://localhost:5100/api/v1/voice/synthesize \
   -H "Content-Type: application/json" \
-  -d '{"message": "Hello, how are you?"}'
+  -d '{"text": "Hello, this is a test of the voice system"}'
 ```
 
-## 🎮 Unity Setup (Coming Soon)
+### **Performance Benchmarks:**
+- **Audio Latency**: <1.2s end-to-end response time
+- **Lip-Sync Accuracy**: ±60ms frame accuracy
+- **GPU Usage**: <30% on typical laptop
+- **Frame Rate**: Stable 60fps avatar rendering
 
-The Unity client will provide:
+## 📈 Development Roadmap
 
-- 3D avatar visualization with Ready Player Me
-- Real-time lip-sync and emotion animations
-- Voice input/output integration
-- Webcam emotion detection display
+### Phase 1: Core Backend ✅ COMPLETED
+- [x] Flask API server with emotional intelligence
+- [x] GPT-4 integration with conversation memory
+- [x] Session management and persistence
+- [x] Conda environment with voice processing
 
-## 🔊 Voice Features (Coming Soon)
+### Phase 2: Voice Processing ✅ COMPLETED
+- [x] OpenAI Whisper speech-to-text integration
+- [x] Voice processing API endpoints
+- [x] Audio streaming and caching system
+- [x] Emotion-aware voice modulation
 
-- **Speech-to-Text**: OpenAI Whisper for voice input
-- **Text-to-Speech**: ElevenLabs for emotional voice output
-- **Real-time Processing**: Voice activity detection
-- **Emotion-aware TTS**: Voice tone matches detected emotions
+### Phase 2.5: Call Interface & 3D Avatar 🚧 CURRENT
+- [ ] Transform chat interface to call interface
+- [ ] Add "Click to Enter Call" button and WebAudio unlock
+- [ ] Implement Three.js 3D avatar rendering
+- [ ] Integrate VRM 1.0 avatar with Ready Player Me
+- [ ] Add streaming TTS with real-time lip-sync
+- [ ] Implement call state machine and controls
 
-## 👁️ Emotion Detection (Coming Soon)
+### Phase 3: Advanced Avatar Features 📋 PLANNED
+- [ ] Emotion-responsive facial expressions
+- [ ] Natural idle animations and micro-movements
+- [ ] Gaze tracking and eye contact simulation
+- [ ] Performance optimization for mobile devices
 
-- **Facial Analysis**: MediaPipe Face Mesh
-- **Real-time Processing**: Live webcam emotion detection
-- **Emotion Classification**: Happy, sad, angry, surprised, fearful, disgusted, neutral
-- **Context Integration**: Emotions influence AI responses
+### Phase 4: Voice Cloning System 📋 PLANNED
+- [ ] Voice sample collection interface
+- [ ] Coqui TTS voice cloning integration
+- [ ] Consent and privacy management system
+- [ ] Voice model training and storage
+- [ ] Multi-voice selection and management
 
-## 🔒 Security & Privacy
+### Phase 5: Production & Polish 📋 FUTURE
+- [ ] Mobile optimization and responsive design
+- [ ] Advanced emotion detection integration
+- [ ] Multi-language support
+- [ ] Cloud deployment and scaling
+- [ ] Analytics and usage insights
 
-- API keys stored in environment variables
-- No logging of sensitive user data
-- Session cleanup after inactivity
-- Secure file permissions for session data
-- Optional conversation history encryption
+## 🔐 Privacy & Voice Cloning Ethics
 
-## 🛠️ Development
+### **Data Protection:**
+- **Local-First**: Voice models stored locally when possible
+- **Encryption**: All voice data encrypted at rest
+- **Consent Ledger**: Explicit permission tracking per voice
+- **Easy Deletion**: One-click removal of voice models and data
 
-### Code Standards
+### **Ethical Guidelines:**
+- **Explicit Consent**: Voice owner must provide clear permission
+- **Scoped Usage**: Cloned voices only for intended emotional support
+- **No Impersonation**: Clear disclosure when using cloned voices
+- **Respect Boundaries**: Honor requests to remove or limit voice usage
 
-- **Python**: PEP 8, type hints, docstrings
-- **Unity C#**: Microsoft conventions, XML documentation
-- **API**: RESTful design, consistent error handling
-- **Git**: Conventional commits, feature branches
+## 🛠️ Development Guidelines
 
-### Environment Management
+### **Call Interface Standards:**
+- **Responsive Design**: 16:9 desktop, 4:3 mobile with letterboxing
+- **Audio Quality**: 16kHz minimum, Opus streaming preferred
+- **State Management**: Clear separation of IDLE/GREETING/CALL states
+- **Error Handling**: Graceful fallbacks for audio/avatar failures
 
-**Adding New Dependencies:**
+### **3D Avatar Requirements:**
+- **Format**: VRM 1.0 with ARKit blendshapes
+- **Performance**: 60fps target, dynamic LOD for optimization
+- **Animations**: Smooth transitions between idle/speaking/listening
+- **Accessibility**: Caption support and audio-only fallback
 
-```bash
-# Activate conda environment
-conda activate emotional_ai
+### **Voice Cloning Standards:**
+- **Sample Quality**: WAV, mono, 16-48kHz, 24-bit, quiet environment
+- **Training Data**: Phonetically diverse content for better quality
+- **Model Storage**: Encrypted, versioned, with metadata
+- **Usage Tracking**: Log usage for consent compliance
 
-# Try conda first (preferred)
-conda install package_name
+## 🌟 Future Vision
 
-# If not available in conda, use pip and update environment.yml
-pip install package_name
-# Then manually add to environment.yml under pip: section
+This project aims to revolutionize emotional AI interaction by:
 
-# Or update entire environment from file
-conda env update -f environment.yml
-
-# Run tests before committing
-python test_backend.py
-```
-
-## 📈 Roadmap
-
-### Phase 1: Core Backend ✅
-
-- [X] Flask API server
-- [X] GPT-4 integration with emotional context
-- [X] Session management and persistence
-- [X] Conda environment setup
-- [X] Basic testing framework
-
-### Phase 2: Voice Processing (In Progress)
-
-- [ ] OpenAI Whisper speech-to-text
-- [ ] ElevenLabs text-to-speech
-- [ ] Voice activity detection
-- [ ] Audio streaming endpoints
-
-### Phase 3: Emotion Detection (Planned)
-
-- [ ] MediaPipe facial emotion analysis
-- [ ] Real-time webcam processing
-- [ ] Emotion classification pipeline
-- [ ] Emotion-response mapping
-
-### Phase 4: Unity 3D Avatar (Planned)
-
-- [ ] Unity project setup
-- [ ] Ready Player Me integration
-- [ ] Avatar animation system
-- [ ] Lip-sync and emotion sync
-- [ ] Unity-Python API communication
-
-### Phase 5: Integration & Polish (Planned)
-
-- [ ] End-to-end testing
-- [ ] Performance optimization
-- [ ] Advanced emotion features
-- [ ] Deployment configuration
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Follow the coding standards in `.clinerules`
-4. Run tests (`python test_backend.py`)
-5. Commit changes (`git commit -m 'feat: add amazing feature'`)
-6. Push to branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- OpenAI for GPT-4 and Whisper
-- Ready Player Me for 3D avatar technology
-- ElevenLabs for voice synthesis
-- MediaPipe for emotion detection
-- Unity Technologies for 3D rendering
-
-## 📞 Support
-
-For questions, issues, or contributions:
-
-- Create an issue on GitHub
-- Check the documentation in `/docs`
-- Review the development guidelines in `.clinerules`
+1. **Bridging Physical Distance**: Connect with loved ones through their cloned voices
+2. **Emotional Healing**: Provide comfort through familiar voices and presence
+3. **Natural Interaction**: Make AI feel like talking to a real person
+4. **Accessible Support**: 24/7 emotional companion in familiar voices
+5. **Ethical AI**: Responsible voice cloning with proper consent and privacy
 
 ---
 
-**Note**: This project is in active development. Some features may be incomplete or subject to change.
+**Ready to experience the future of emotional AI companionship!** 🤖💙

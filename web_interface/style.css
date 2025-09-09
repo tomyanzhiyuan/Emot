@@ -50,35 +50,6 @@ body {
     overflow: hidden;
 }
 
-/* Emotion selector */
-.emotion-selector {
-    padding: 20px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.emotion-selector label {
-    font-weight: 600;
-    color: #495057;
-}
-
-.emotion-selector select {
-    padding: 8px 12px;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    background: white;
-    font-size: 14px;
-    cursor: pointer;
-    transition: border-color 0.3s ease;
-}
-
-.emotion-selector select:focus {
-    outline: none;
-    border-color: #667eea;
-}
 
 /* Chat messages */
 .chat-messages {
@@ -142,6 +113,44 @@ body {
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
+    align-items: center;
+}
+
+.voice-button {
+    width: 50px;
+    height: 50px;
+    border: 2px solid #dee2e6;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 20px;
+}
+
+.voice-button:hover {
+    border-color: #667eea;
+    background: #f8f9fa;
+}
+
+.voice-button.recording {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    animation: pulse 1s infinite;
+}
+
+.voice-button.processing {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: white;
+}
+
+.voice-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 #message-input {

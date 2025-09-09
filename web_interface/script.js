@@ -4,11 +4,15 @@ const API_BASE_URL = 'http://localhost:5100/api/v1';
 // Global variables
 let currentSessionId = null;
 let isConnected = false;
+let isRecording = false;
+let mediaRecorder = null;
+let audioChunks = [];
 
 // DOM elements
 const chatMessages = document.getElementById('chat-messages');
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
+const voiceButton = document.getElementById('voice-button');
 const charCount = document.getElementById('char-count');
 const sessionIdSpan = document.getElementById('session-id');
 const connectionStatus = document.getElementById('connection-status');
@@ -37,7 +41,7 @@ async function initializeApp() {
     } catch (error) {
         console.error('Failed to initialize app:', error);
         updateConnectionStatus('error', 'Connection failed');
-        showError('Failed to connect to the AI server. Please make sure the backend is running on port 5001.');
+        showError('Failed to connect to the AI server. Please make sure the backend is running on port 5100.');
     }
 }
 
@@ -123,6 +127,9 @@ function setupEventListeners() {
     // Send button click
     sendButton.addEventListener('click', sendMessage);
     
+    // Voice button click
+    voiceButton.addEventListener('click', toggleVoiceRecording);
+    
     // Enter key press
     messageInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -145,6 +152,8 @@ function setupEventListeners() {
         }
     });
     
+    // Initialize voice recording capability
+    initializeVoiceRecording();
 }
 
 // Send message to the AI
@@ -152,7 +161,7 @@ async function sendMessage() {
     const message = messageInput.value.trim();
     if (!message || !isConnected) return;
     
-    const emotion = emotionSelect.value;
+    const emotion = 'neutral'; // Default to neutral since emotion selector was removed
     
     // Disable input while processing
     setInputEnabled(false);
@@ -260,7 +269,6 @@ function updateConnectionStatus(status, message) {
 function setInputEnabled(enabled) {
     messageInput.disabled = !enabled;
     sendButton.disabled = !enabled;
-    emotionSelect.disabled = !enabled;
 }
 
 // Show/hide loading overlay
@@ -310,8 +318,160 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 
+// Initialize voice recording capability
+async function initializeVoiceRecording() {
+    try {
+        // Check if browser supports MediaRecorder
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.warn('Voice recording not supported in this browser');
+            voiceButton.disabled = true;
+            voiceButton.title = 'Voice recording not supported';
+            return;
+        }
+        
+        // Check microphone permission
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+        
+        console.log('Voice recording initialized successfully');
+        voiceButton.title = 'Click to start voice recording';
+        
+    } catch (error) {
+        console.warn('Microphone access denied or not available:', error);
+        voiceButton.disabled = true;
+        voiceButton.title = 'Microphone access required for voice recording';
+    }
+}
+
+// Toggle voice recording
+async function toggleVoiceRecording() {
+    if (!isConnected) {
+        showError('Please wait for connection to server');
+        return;
+    }
+    
+    if (isRecording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+}
+
+// Start voice recording
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                sampleRate: 16000,
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true
+            }
+        });
+        
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus'
+        });
+        
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = function() {
+            processRecording();
+        };
+        
+        mediaRecorder.start();
+        isRecording = true;
+        
+        // Update UI
+        voiceButton.classList.add('recording');
+        voiceButton.innerHTML = '<span class="voice-icon">⏹️</span>';
+        voiceButton.title = 'Click to stop recording';
+        
+        console.log('Voice recording started');
+        
+    } catch (error) {
+        console.error('Failed to start recording:', error);
+        showError('Failed to access microphone');
+    }
+}
+
+// Stop voice recording
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        
+        isRecording = false;
+        
+        // Update UI
+        voiceButton.classList.remove('recording');
+        voiceButton.classList.add('processing');
+        voiceButton.innerHTML = '<span class="voice-icon">⏳</span>';
+        voiceButton.title = 'Processing audio...';
+        
+        console.log('Voice recording stopped');
+    }
+}
+
+// Process recorded audio
+async function processRecording() {
+    try {
+        // Create audio blob
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+        
+        // Create form data for upload
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        
+        // Send to transcription API
+        const response = await fetch(`${API_BASE_URL}/voice/transcribe`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.data.text) {
+            // Put transcribed text in input field
+            messageInput.value = data.data.text;
+            messageInput.focus();
+            
+            // Update character count
+            const count = messageInput.value.length;
+            charCount.textContent = `${count}/500`;
+            
+            console.log('Audio transcribed:', data.data.text);
+        } else {
+            throw new Error('Transcription failed');
+        }
+        
+    } catch (error) {
+        console.error('Error processing recording:', error);
+        showError('Failed to process voice recording');
+    } finally {
+        // Reset voice button
+        voiceButton.classList.remove('processing');
+        voiceButton.innerHTML = '<span class="voice-icon">🎤</span>';
+        voiceButton.title = 'Click to start voice recording';
+    }
+}
+
 // Handle window beforeunload (save state)
 window.addEventListener('beforeunload', function() {
+    // Stop any ongoing recording
+    if (isRecording) {
+        stopRecording();
+    }
+    
     // Session ID is already saved in localStorage
-    // Could save other state here if needed
 });

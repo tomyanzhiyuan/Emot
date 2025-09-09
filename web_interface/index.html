@@ -14,19 +14,6 @@
         </header>
 
         <div class="chat-container">
-            <div class="emotion-selector">
-                <label for="emotion-select">Current Emotion:</label>
-                <select id="emotion-select">
-                    <option value="neutral">😐 Neutral</option>
-                    <option value="happy">😊 Happy</option>
-                    <option value="sad">😢 Sad</option>
-                    <option value="angry">😠 Angry</option>
-                    <option value="surprised">😲 Surprised</option>
-                    <option value="fearful">😰 Fearful</option>
-                    <option value="disgusted">🤢 Disgusted</option>
-                </select>
-            </div>
-
             <div class="chat-messages" id="chat-messages">
                 <div class="message ai-message">
                     <div class="message-content">
@@ -38,10 +25,13 @@
 
             <div class="chat-input-container">
                 <div class="input-group">
+                    <button id="voice-button" type="button" class="voice-button">
+                        <span class="voice-icon">🎤</span>
+                    </button>
                     <input 
                         type="text" 
                         id="message-input" 
-                        placeholder="Type your message here..." 
+                        placeholder="Type your message or use voice..." 
                         maxlength="500"
                     >
                     <button id="send-button" type="button">
