@@ -1,32 +1,73 @@
 // Configuration
 const API_BASE_URL = 'http://localhost:5100/api/v1';
 
+// Call States
+const CALL_STATES = {
+    IDLE: 'idle',
+    GREETING: 'greeting',
+    CTA_VISIBLE: 'cta_visible',
+    CALL_STARTING: 'call_starting',
+    CALL_ACTIVE: 'call_active',
+    SPEAKING: 'speaking',
+    LISTENING: 'listening'
+};
+
 // Global variables
 let currentSessionId = null;
 let isConnected = false;
+let currentCallState = CALL_STATES.IDLE;
+let audioContext = null;
 let isRecording = false;
+let isMuted = false;
 let mediaRecorder = null;
 let audioChunks = [];
+let currentVolume = 0.8;
+
+// Three.js variables for 3D avatar
+let scene, camera, renderer, avatar;
+let animationId = null;
 
 // DOM elements
-const chatMessages = document.getElementById('chat-messages');
-const messageInput = document.getElementById('message-input');
-const sendButton = document.getElementById('send-button');
-const voiceButton = document.getElementById('voice-button');
-const charCount = document.getElementById('char-count');
-const sessionIdSpan = document.getElementById('session-id');
+const avatarContainer = document.getElementById('avatar-container');
+const avatarCanvas = document.getElementById('avatar-canvas');
+const callStateOverlay = document.getElementById('call-state-overlay');
+const aiGreeting = document.getElementById('ai-greeting');
+const greetingStatus = document.getElementById('greeting-status');
+const callInvitation = document.getElementById('call-invitation');
+const enterCallBtn = document.getElementById('enter-call-btn');
+const callStatus = document.getElementById('call-status');
+const statusText = document.getElementById('status-text');
+const callControls = document.getElementById('call-controls');
+const transcriptContainer = document.getElementById('transcript-container');
+const transcriptMessages = document.getElementById('transcript-messages');
+const showTranscriptBtn = document.getElementById('show-transcript-btn');
+const transcriptToggle = document.getElementById('transcript-toggle');
+const muteBtn = document.getElementById('mute-btn');
+const volumeBtn = document.getElementById('volume-btn');
+const endCallBtn = document.getElementById('end-call-btn');
 const connectionStatus = document.getElementById('connection-status');
 const loadingOverlay = document.getElementById('loading-overlay');
+const loadingText = document.getElementById('loading-text');
+const volumeModal = document.getElementById('volume-modal');
+const volumeSlider = document.getElementById('volume-slider');
+const volumeValue = document.getElementById('volume-value');
+const closeVolumeModal = document.getElementById('close-volume-modal');
+
+// Hidden elements for voice processing
+const messageInput = document.getElementById('message-input');
+const sendButton = document.getElementById('send-button');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
+    initializeThreeJS();
 });
 
 // Initialize the application
 async function initializeApp() {
     updateConnectionStatus('connecting', 'Connecting to server...');
+    setCallState(CALL_STATES.IDLE);
     
     try {
         // Check server health
@@ -35,13 +76,17 @@ async function initializeApp() {
         // Create or restore session
         await initializeSession();
         
-        updateConnectionStatus('connected', 'Connected to server');
+        updateConnectionStatus('connected', 'Connected');
         isConnected = true;
+        
+        // Start AI greeting sequence
+        await startGreetingSequence();
         
     } catch (error) {
         console.error('Failed to initialize app:', error);
         updateConnectionStatus('error', 'Connection failed');
-        showError('Failed to connect to the AI server. Please make sure the backend is running on port 5100.');
+        greetingStatus.textContent = 'Connection failed. Please check if the backend server is running.';
+        greetingStatus.style.color = '#f44336';
     }
 }
 
@@ -65,13 +110,6 @@ async function initializeSession() {
             const response = await fetch(`${API_BASE_URL}/sessions/${savedSessionId}`);
             if (response.ok) {
                 currentSessionId = savedSessionId;
-                sessionIdSpan.textContent = currentSessionId.substring(0, 8) + '...';
-                
-                // Load conversation history
-                const data = await response.json();
-                if (data.success && data.data.history) {
-                    loadConversationHistory(data.data.history);
-                }
                 return;
             }
         } catch (error) {
@@ -94,43 +132,99 @@ async function initializeSession() {
     const data = await response.json();
     if (data.success) {
         currentSessionId = data.data.session_id;
-        sessionIdSpan.textContent = currentSessionId.substring(0, 8) + '...';
         localStorage.setItem('emotionalai_session_id', currentSessionId);
     } else {
         throw new Error('Failed to create session');
     }
 }
 
-// Load conversation history
-function loadConversationHistory(history) {
-    // Clear existing messages except the welcome message
-    const welcomeMessage = chatMessages.querySelector('.ai-message');
-    chatMessages.innerHTML = '';
-    if (welcomeMessage) {
-        chatMessages.appendChild(welcomeMessage);
+// Start AI greeting sequence
+async function startGreetingSequence() {
+    setCallState(CALL_STATES.GREETING);
+    greetingStatus.textContent = 'Connected! Ready to chat.';
+    greetingStatus.style.color = '#4CAF50';
+    
+    // Wait a moment, then show call invitation
+    setTimeout(() => {
+        setCallState(CALL_STATES.CTA_VISIBLE);
+    }, 2000);
+}
+
+// Set call state and update UI
+function setCallState(newState) {
+    currentCallState = newState;
+    
+    switch (newState) {
+        case CALL_STATES.IDLE:
+            callStateOverlay.style.display = 'flex';
+            aiGreeting.style.display = 'block';
+            callInvitation.style.display = 'none';
+            callStatus.style.display = 'none';
+            callControls.style.display = 'none';
+            transcriptContainer.style.display = 'none';
+            break;
+            
+        case CALL_STATES.GREETING:
+            callStateOverlay.style.display = 'flex';
+            aiGreeting.style.display = 'block';
+            callInvitation.style.display = 'none';
+            break;
+            
+        case CALL_STATES.CTA_VISIBLE:
+            callStateOverlay.style.display = 'flex';
+            aiGreeting.style.display = 'block';
+            callInvitation.style.display = 'block';
+            break;
+            
+        case CALL_STATES.CALL_STARTING:
+            showLoading(true, 'Starting call...');
+            break;
+            
+        case CALL_STATES.CALL_ACTIVE:
+            callStateOverlay.style.display = 'none';
+            callStatus.style.display = 'block';
+            callControls.style.display = 'block';
+            showLoading(false);
+            setCallStatus('listening', 'Listening...');
+            break;
+            
+        case CALL_STATES.SPEAKING:
+            setCallStatus('speaking', 'Speaking...');
+            break;
+            
+        case CALL_STATES.LISTENING:
+            setCallStatus('listening', 'Listening...');
+            break;
     }
-    
-    // Add historical messages
-    history.forEach(message => {
-        if (message.role === 'user') {
-            addMessage(message.content, 'user', new Date(message.timestamp));
-        } else if (message.role === 'assistant') {
-            addMessage(message.content, 'ai', new Date(message.timestamp));
-        }
-    });
-    
-    scrollToBottom();
+}
+
+// Set call status indicator
+function setCallStatus(type, text) {
+    const statusDot = callStatus.querySelector('.status-dot');
+    statusDot.className = `status-dot ${type}`;
+    statusText.textContent = text;
 }
 
 // Setup event listeners
 function setupEventListeners() {
-    // Send button click
+    // Enter call button
+    enterCallBtn.addEventListener('click', enterCall);
+    
+    // Call control buttons
+    muteBtn.addEventListener('click', toggleMute);
+    volumeBtn.addEventListener('click', showVolumeModal);
+    showTranscriptBtn.addEventListener('click', toggleTranscript);
+    endCallBtn.addEventListener('click', endCall);
+    
+    // Volume modal
+    closeVolumeModal.addEventListener('click', hideVolumeModal);
+    volumeSlider.addEventListener('input', updateVolume);
+    
+    // Transcript toggle
+    transcriptToggle.addEventListener('click', toggleTranscript);
+    
+    // Voice input processing (hidden)
     sendButton.addEventListener('click', sendMessage);
-    
-    // Voice button click
-    voiceButton.addEventListener('click', toggleVoiceRecording);
-    
-    // Enter key press
     messageInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -138,227 +232,51 @@ function setupEventListeners() {
         }
     });
     
-    // Character count
-    messageInput.addEventListener('input', function() {
-        const count = this.value.length;
-        charCount.textContent = `${count}/500`;
-        
-        if (count > 450) {
-            charCount.style.color = '#dc3545';
-        } else if (count > 400) {
-            charCount.style.color = '#ffc107';
-        } else {
-            charCount.style.color = '#6c757d';
-        }
-    });
-    
     // Initialize voice recording capability
     initializeVoiceRecording();
+    
+    // Handle window resize for Three.js
+    window.addEventListener('resize', onWindowResize);
+    
+    // Handle page visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible' && !isConnected) {
+            initializeApp();
+        }
+    });
 }
 
-// Send message to the AI
-async function sendMessage() {
-    const message = messageInput.value.trim();
-    if (!message || !isConnected) return;
-    
-    const emotion = 'neutral'; // Default to neutral since emotion selector was removed
-    
-    // Disable input while processing
-    setInputEnabled(false);
-    showLoading(true);
-    
-    // Add user message to chat
-    addMessage(message, 'user');
-    messageInput.value = '';
-    charCount.textContent = '0/500';
-    charCount.style.color = '#6c757d';
-    
+// Enter call mode
+async function enterCall() {
     try {
-        // Send message to API
-        const response = await fetch(`${API_BASE_URL}/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: message,
-                session_id: currentSessionId,
-                emotion: emotion
-            })
-        });
+        setCallState(CALL_STATES.CALL_STARTING);
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Initialize WebAudio context (requires user gesture)
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         
-        const data = await response.json();
-        
-        if (data.success) {
-            // Add AI response to chat
-            addMessage(data.data.message, 'ai');
-            
-            // Update session ID if it changed
-            if (data.data.session_id && data.data.session_id !== currentSessionId) {
-                currentSessionId = data.data.session_id;
-                sessionIdSpan.textContent = currentSessionId.substring(0, 8) + '...';
-                localStorage.setItem('emotionalai_session_id', currentSessionId);
-            }
-        } else {
-            throw new Error(data.error?.message || 'Unknown error occurred');
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
         }
+        
+        // Initialize microphone access
+        await initializeMicrophone();
+        
+        // Start call mode
+        setCallState(CALL_STATES.CALL_ACTIVE);
+        
+        console.log('Call started successfully');
         
     } catch (error) {
-        console.error('Error sending message:', error);
-        addMessage('Sorry, I encountered an error while processing your message. Please try again.', 'ai', null, true);
-        showError('Failed to send message: ' + error.message);
-    } finally {
-        setInputEnabled(true);
-        showLoading(false);
-        messageInput.focus();
+        console.error('Failed to enter call:', error);
+        showError('Failed to start call. Please check microphone permissions.');
+        setCallState(CALL_STATES.CTA_VISIBLE);
     }
 }
 
-// Add message to chat
-function addMessage(content, sender, timestamp = null, isError = false) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}-message`;
-    
-    const messageContent = document.createElement('div');
-    messageContent.className = 'message-content';
-    
-    if (sender === 'ai') {
-        messageContent.innerHTML = `<strong>Emot:</strong> ${content}`;
-        if (isError) {
-            messageContent.style.color = '#dc3545';
-        }
-    } else {
-        messageContent.innerHTML = `<strong>You:</strong> ${content}`;
-    }
-    
-    const messageTime = document.createElement('div');
-    messageTime.className = 'message-time';
-    messageTime.textContent = timestamp ? formatTime(timestamp) : formatTime(new Date());
-    
-    messageDiv.appendChild(messageContent);
-    messageDiv.appendChild(messageTime);
-    
-    chatMessages.appendChild(messageDiv);
-    scrollToBottom();
-}
-
-// Format timestamp
-function formatTime(date) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-// Scroll to bottom of chat
-function scrollToBottom() {
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-// Update connection status
-function updateConnectionStatus(status, message) {
-    const statusDot = connectionStatus.querySelector('.status-dot');
-    const statusText = connectionStatus.querySelector('.status-text');
-    
-    statusDot.className = `status-dot ${status}`;
-    statusText.textContent = message;
-}
-
-// Enable/disable input
-function setInputEnabled(enabled) {
-    messageInput.disabled = !enabled;
-    sendButton.disabled = !enabled;
-}
-
-// Show/hide loading overlay
-function showLoading(show) {
-    if (show) {
-        loadingOverlay.classList.add('show');
-    } else {
-        loadingOverlay.classList.remove('show');
-    }
-}
-
-// Show error message
-function showError(message) {
-    // You could implement a toast notification here
-    console.error('Error:', message);
-    
-    // For now, just update the connection status
-    updateConnectionStatus('error', 'Error occurred');
-    
-    // Reset status after 3 seconds
-    setTimeout(() => {
-        if (isConnected) {
-            updateConnectionStatus('connected', 'Connected to server');
-        }
-    }, 3000);
-}
-
-// Utility function to get emotion emoji
-function getEmotionEmoji(emotion) {
-    const emojiMap = {
-        'neutral': '😐',
-        'happy': '😊',
-        'sad': '😢',
-        'angry': '😠',
-        'surprised': '😲',
-        'fearful': '😰',
-        'disgusted': '🤢'
-    };
-    return emojiMap[emotion] || '😐';
-}
-
-// Handle page visibility change (pause/resume functionality)
-document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible' && !isConnected) {
-        // Try to reconnect when page becomes visible
-        initializeApp();
-    }
-});
-
-// Initialize voice recording capability
-async function initializeVoiceRecording() {
-    try {
-        // Check if browser supports MediaRecorder
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            console.warn('Voice recording not supported in this browser');
-            voiceButton.disabled = true;
-            voiceButton.title = 'Voice recording not supported';
-            return;
-        }
-        
-        // Check microphone permission
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
-        
-        console.log('Voice recording initialized successfully');
-        voiceButton.title = 'Click to start voice recording';
-        
-    } catch (error) {
-        console.warn('Microphone access denied or not available:', error);
-        voiceButton.disabled = true;
-        voiceButton.title = 'Microphone access required for voice recording';
-    }
-}
-
-// Toggle voice recording
-async function toggleVoiceRecording() {
-    if (!isConnected) {
-        showError('Please wait for connection to server');
-        return;
-    }
-    
-    if (isRecording) {
-        stopRecording();
-    } else {
-        startRecording();
-    }
-}
-
-// Start voice recording
-async function startRecording() {
+// Initialize microphone access
+async function initializeMicrophone() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             audio: {
@@ -369,11 +287,10 @@ async function startRecording() {
             }
         });
         
+        // Set up MediaRecorder for voice input
         mediaRecorder = new MediaRecorder(stream, {
             mimeType: 'audio/webm;codecs=opus'
         });
-        
-        audioChunks = [];
         
         mediaRecorder.ondataavailable = function(event) {
             if (event.data.size > 0) {
@@ -382,46 +299,49 @@ async function startRecording() {
         };
         
         mediaRecorder.onstop = function() {
-            processRecording();
+            processVoiceInput();
         };
         
-        mediaRecorder.start();
-        isRecording = true;
-        
-        // Update UI
-        voiceButton.classList.add('recording');
-        voiceButton.innerHTML = '<span class="voice-icon">⏹️</span>';
-        voiceButton.title = 'Click to stop recording';
-        
-        console.log('Voice recording started');
+        // Start continuous listening
+        startListening();
         
     } catch (error) {
-        console.error('Failed to start recording:', error);
-        showError('Failed to access microphone');
+        throw new Error('Microphone access denied or not available');
     }
 }
 
-// Stop voice recording
-function stopRecording() {
+// Start listening for voice input
+function startListening() {
+    if (!mediaRecorder || isMuted) return;
+    
+    audioChunks = [];
+    mediaRecorder.start();
+    isRecording = true;
+    
+    // Auto-stop after 10 seconds (can be adjusted)
+    setTimeout(() => {
+        if (isRecording) {
+            stopListening();
+        }
+    }, 10000);
+}
+
+// Stop listening for voice input
+function stopListening() {
     if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        
         isRecording = false;
-        
-        // Update UI
-        voiceButton.classList.remove('recording');
-        voiceButton.classList.add('processing');
-        voiceButton.innerHTML = '<span class="voice-icon">⏳</span>';
-        voiceButton.title = 'Processing audio...';
-        
-        console.log('Voice recording stopped');
     }
 }
 
-// Process recorded audio
-async function processRecording() {
+// Process voice input
+async function processVoiceInput() {
+    if (audioChunks.length === 0) return;
+    
     try {
+        setCallState(CALL_STATES.SPEAKING);
+        showLoading(true, 'Processing voice...');
+        
         // Create audio blob
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
         
@@ -441,37 +361,310 @@ async function processRecording() {
         
         const data = await response.json();
         
-        if (data.success && data.data.text) {
-            // Put transcribed text in input field
+        if (data.success && data.data.text && data.data.text.trim()) {
+            // Process the transcribed text
             messageInput.value = data.data.text;
-            messageInput.focus();
-            
-            // Update character count
-            const count = messageInput.value.length;
-            charCount.textContent = `${count}/500`;
-            
-            console.log('Audio transcribed:', data.data.text);
+            await sendMessage();
         } else {
-            throw new Error('Transcription failed');
+            // No speech detected, continue listening
+            setCallState(CALL_STATES.LISTENING);
+            showLoading(false);
+            startListening();
         }
         
     } catch (error) {
-        console.error('Error processing recording:', error);
-        showError('Failed to process voice recording');
-    } finally {
-        // Reset voice button
-        voiceButton.classList.remove('processing');
-        voiceButton.innerHTML = '<span class="voice-icon">🎤</span>';
-        voiceButton.title = 'Click to start voice recording';
+        console.error('Error processing voice input:', error);
+        showError('Failed to process voice input');
+        setCallState(CALL_STATES.LISTENING);
+        showLoading(false);
+        startListening();
     }
 }
 
-// Handle window beforeunload (save state)
+// Send message to AI
+async function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message || !isConnected) return;
+    
+    try {
+        showLoading(true, 'AI is thinking...');
+        
+        // Add to transcript
+        addToTranscript(message, 'user');
+        
+        // Clear input
+        messageInput.value = '';
+        
+        // Send message to API
+        const response = await fetch(`${API_BASE_URL}/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: message,
+                session_id: currentSessionId,
+                emotion: 'neutral'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add AI response to transcript
+            addToTranscript(data.data.message, 'ai');
+            
+            // Synthesize speech
+            await synthesizeSpeech(data.data.message);
+            
+            // Update session ID if it changed
+            if (data.data.session_id && data.data.session_id !== currentSessionId) {
+                currentSessionId = data.data.session_id;
+                localStorage.setItem('emotionalai_session_id', currentSessionId);
+            }
+        } else {
+            throw new Error(data.error?.message || 'Unknown error occurred');
+        }
+        
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showError('Failed to send message: ' + error.message);
+        setCallState(CALL_STATES.LISTENING);
+        showLoading(false);
+        startListening();
+    }
+}
+
+// Synthesize speech from text
+async function synthesizeSpeech(text) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/voice/synthesize`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text: text,
+                voice: 'default',
+                emotion: 'neutral'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.data.audio_url) {
+            // Play the synthesized audio
+            await playAudio(data.data.audio_url);
+        } else {
+            throw new Error('Speech synthesis failed');
+        }
+        
+    } catch (error) {
+        console.error('Error synthesizing speech:', error);
+        showError('Failed to synthesize speech');
+    } finally {
+        // Return to listening state
+        setCallState(CALL_STATES.LISTENING);
+        showLoading(false);
+        startListening();
+    }
+}
+
+// Play audio
+async function playAudio(audioUrl) {
+    return new Promise((resolve, reject) => {
+        const audio = new Audio(audioUrl);
+        audio.volume = currentVolume;
+        
+        audio.onended = () => {
+            resolve();
+        };
+        
+        audio.onerror = () => {
+            reject(new Error('Audio playback failed'));
+        };
+        
+        audio.play().catch(reject);
+    });
+}
+
+// Add message to transcript
+function addToTranscript(message, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `transcript-message ${sender}`;
+    
+    if (sender === 'user') {
+        messageDiv.textContent = `You: ${message}`;
+    } else {
+        messageDiv.textContent = `AI: ${message}`;
+    }
+    
+    transcriptMessages.appendChild(messageDiv);
+    transcriptMessages.scrollTop = transcriptMessages.scrollHeight;
+}
+
+// Toggle mute
+function toggleMute() {
+    isMuted = !isMuted;
+    
+    if (isMuted) {
+        muteBtn.classList.add('muted');
+        muteBtn.querySelector('.control-icon').textContent = '🔇';
+        muteBtn.querySelector('.control-label').textContent = 'Unmute';
+        stopListening();
+    } else {
+        muteBtn.classList.remove('muted');
+        muteBtn.querySelector('.control-icon').textContent = '🎤';
+        muteBtn.querySelector('.control-label').textContent = 'Mute';
+        if (currentCallState === CALL_STATES.LISTENING) {
+            startListening();
+        }
+    }
+}
+
+// Show volume modal
+function showVolumeModal() {
+    volumeModal.style.display = 'flex';
+    volumeSlider.value = currentVolume * 100;
+    volumeValue.textContent = Math.round(currentVolume * 100) + '%';
+}
+
+// Hide volume modal
+function hideVolumeModal() {
+    volumeModal.style.display = 'none';
+}
+
+// Update volume
+function updateVolume() {
+    currentVolume = volumeSlider.value / 100;
+    volumeValue.textContent = Math.round(currentVolume * 100) + '%';
+}
+
+// Toggle transcript
+function toggleTranscript() {
+    const isVisible = transcriptContainer.style.display !== 'none';
+    
+    if (isVisible) {
+        transcriptContainer.style.display = 'none';
+        showTranscriptBtn.querySelector('.control-label').textContent = 'Transcript';
+        showTranscriptBtn.classList.remove('active');
+    } else {
+        transcriptContainer.style.display = 'block';
+        showTranscriptBtn.querySelector('.control-label').textContent = 'Hide';
+        showTranscriptBtn.classList.add('active');
+    }
+}
+
+// End call
+function endCall() {
+    // Stop recording
+    if (isRecording) {
+        stopListening();
+    }
+    
+    // Stop media tracks
+    if (mediaRecorder && mediaRecorder.stream) {
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Reset state
+    setCallState(CALL_STATES.CTA_VISIBLE);
+    isMuted = false;
+    muteBtn.classList.remove('muted');
+    muteBtn.querySelector('.control-icon').textContent = '🎤';
+    muteBtn.querySelector('.control-label').textContent = 'Mute';
+    
+    console.log('Call ended');
+}
+
+// Initialize Three.js for 3D avatar (placeholder for now)
+function initializeThreeJS() {
+    // For now, we'll skip Three.js initialization to avoid CDN issues
+    // This will be replaced with proper 3D avatar rendering later
+    console.log('3D Avatar system initialized (placeholder mode)');
+    
+    // Hide the canvas since we're not using it yet
+    avatarCanvas.style.display = 'none';
+}
+
+// Placeholder functions for Three.js compatibility
+function createPlaceholderAvatar() {
+    // Placeholder - will be implemented with proper 3D avatar
+}
+
+function animate() {
+    // Placeholder - will be implemented with proper 3D avatar
+}
+
+function onWindowResize() {
+    // Placeholder - will be implemented with proper 3D avatar
+}
+
+// Initialize voice recording capability
+async function initializeVoiceRecording() {
+    try {
+        // Check if browser supports MediaRecorder
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.warn('Voice recording not supported in this browser');
+            return;
+        }
+        
+        console.log('Voice recording capability initialized');
+        
+    } catch (error) {
+        console.warn('Voice recording initialization failed:', error);
+    }
+}
+
+// Update connection status
+function updateConnectionStatus(status, message) {
+    const statusDot = connectionStatus.querySelector('.status-dot');
+    const statusText = connectionStatus.querySelector('.status-text');
+    
+    statusDot.className = `status-dot ${status}`;
+    statusText.textContent = message;
+}
+
+// Show/hide loading overlay
+function showLoading(show, message = 'AI is thinking...') {
+    if (show) {
+        loadingText.textContent = message;
+        loadingOverlay.classList.add('show');
+    } else {
+        loadingOverlay.classList.remove('show');
+    }
+}
+
+// Show error message
+function showError(message) {
+    console.error('Error:', message);
+    updateConnectionStatus('error', 'Error occurred');
+    
+    // Reset status after 3 seconds
+    setTimeout(() => {
+        if (isConnected) {
+            updateConnectionStatus('connected', 'Connected');
+        }
+    }, 3000);
+}
+
+// Handle page beforeunload
 window.addEventListener('beforeunload', function() {
     // Stop any ongoing recording
     if (isRecording) {
-        stopRecording();
+        stopListening();
     }
     
-    // Session ID is already saved in localStorage
+    // Stop animation loop
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
 });
