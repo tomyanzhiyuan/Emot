@@ -190,10 +190,12 @@ function setCallState(newState) {
             
         case CALL_STATES.SPEAKING:
             setCallStatus('speaking', 'Speaking...');
+            startSpeakingAnimation();
             break;
             
         case CALL_STATES.LISTENING:
             setCallStatus('listening', 'Listening...');
+            startListeningAnimation();
             break;
     }
 }
@@ -585,27 +587,288 @@ function endCall() {
     console.log('Call ended');
 }
 
-// Initialize Three.js for 3D avatar (placeholder for now)
+// Initialize Three.js for 3D avatar
 function initializeThreeJS() {
-    // For now, we'll skip Three.js initialization to avoid CDN issues
-    // This will be replaced with proper 3D avatar rendering later
-    console.log('3D Avatar system initialized (placeholder mode)');
+    try {
+        // Scene setup
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1e3c72);
+        
+        // Camera setup
+        camera = new THREE.PerspectiveCamera(
+            50, 
+            avatarContainer.clientWidth / avatarContainer.clientHeight, 
+            0.1, 
+            1000
+        );
+        camera.position.set(0, 1.6, 3);
+        
+        // Renderer setup
+        renderer = new THREE.WebGLRenderer({ 
+            canvas: avatarCanvas,
+            antialias: true,
+            alpha: true
+        });
+        renderer.setSize(avatarContainer.clientWidth, avatarContainer.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        
+        // Lighting setup
+        setupLighting();
+        
+        // Create avatar
+        createAvatar();
+        
+        // Start render loop
+        animate();
+        
+        // Show the canvas
+        avatarCanvas.style.display = 'block';
+        
+        console.log('3D Avatar system initialized successfully');
+        
+    } catch (error) {
+        console.error('Failed to initialize 3D Avatar system:', error);
+        // Fallback to placeholder mode
+        avatarCanvas.style.display = 'none';
+    }
+}
+
+// Setup lighting for the 3D scene
+function setupLighting() {
+    // Ambient light for overall illumination
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
     
-    // Hide the canvas since we're not using it yet
-    avatarCanvas.style.display = 'none';
+    // Main directional light (key light)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(2, 4, 3);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 50;
+    directionalLight.shadow.camera.left = -10;
+    directionalLight.shadow.camera.right = 10;
+    directionalLight.shadow.camera.top = 10;
+    directionalLight.shadow.camera.bottom = -10;
+    scene.add(directionalLight);
+    
+    // Fill light (softer, from the side)
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    fillLight.position.set(-2, 2, 1);
+    scene.add(fillLight);
+    
+    // Rim light (from behind, for depth)
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    rimLight.position.set(0, 2, -3);
+    scene.add(rimLight);
 }
 
-// Placeholder functions for Three.js compatibility
-function createPlaceholderAvatar() {
-    // Placeholder - will be implemented with proper 3D avatar
+// Create 3D avatar
+function createAvatar() {
+    // Create avatar group
+    avatar = new THREE.Group();
+    
+    // Create stylized humanoid avatar
+    createAvatarHead();
+    createAvatarBody();
+    createAvatarArms();
+    
+    // Position avatar
+    avatar.position.y = -0.5;
+    scene.add(avatar);
+    
+    console.log('3D Avatar created successfully');
 }
 
+// Create avatar head with facial features
+function createAvatarHead() {
+    const headGroup = new THREE.Group();
+    
+    // Head
+    const headGeometry = new THREE.SphereGeometry(0.35, 32, 32);
+    const headMaterial = new THREE.MeshLambertMaterial({ 
+        color: 0xffdbac,
+        transparent: true,
+        opacity: 0.95
+    });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.y = 1.7;
+    head.castShadow = true;
+    head.receiveShadow = true;
+    headGroup.add(head);
+    
+    // Eyes
+    const eyeGeometry = new THREE.SphereGeometry(0.06, 16, 16);
+    const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
+    
+    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    leftEye.position.set(-0.12, 1.75, 0.28);
+    headGroup.add(leftEye);
+    
+    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+    rightEye.position.set(0.12, 1.75, 0.28);
+    headGroup.add(rightEye);
+    
+    // Eye pupils
+    const pupilGeometry = new THREE.SphereGeometry(0.03, 12, 12);
+    const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+    
+    const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    leftPupil.position.set(-0.12, 1.75, 0.32);
+    headGroup.add(leftPupil);
+    
+    const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+    rightPupil.position.set(0.12, 1.75, 0.32);
+    headGroup.add(rightPupil);
+    
+    // Mouth (for lip-sync)
+    const mouthGeometry = new THREE.SphereGeometry(0.08, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.5);
+    const mouthMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+    const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+    mouth.position.set(0, 1.6, 0.3);
+    mouth.rotation.x = Math.PI;
+    headGroup.add(mouth);
+    
+    // Store references for animation
+    headGroup.userData = {
+        head: head,
+        leftEye: leftEye,
+        rightEye: rightEye,
+        leftPupil: leftPupil,
+        rightPupil: rightPupil,
+        mouth: mouth
+    };
+    
+    avatar.add(headGroup);
+    avatar.userData.head = headGroup;
+}
+
+// Create avatar body
+function createAvatarBody() {
+    // Torso
+    const torsoGeometry = new THREE.CylinderGeometry(0.35, 0.4, 1.2, 12);
+    const torsoMaterial = new THREE.MeshLambertMaterial({ color: 0x4a90e2 });
+    const torso = new THREE.Mesh(torsoGeometry, torsoMaterial);
+    torso.position.y = 0.8;
+    torso.castShadow = true;
+    torso.receiveShadow = true;
+    avatar.add(torso);
+    
+    avatar.userData.torso = torso;
+}
+
+// Create avatar arms
+function createAvatarArms() {
+    // Left arm
+    const armGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 8);
+    const armMaterial = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+    
+    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+    leftArm.position.set(-0.5, 1.0, 0);
+    leftArm.rotation.z = Math.PI * 0.2;
+    leftArm.castShadow = true;
+    avatar.add(leftArm);
+    
+    // Right arm
+    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+    rightArm.position.set(0.5, 1.0, 0);
+    rightArm.rotation.z = -Math.PI * 0.2;
+    rightArm.castShadow = true;
+    avatar.add(rightArm);
+    
+    avatar.userData.leftArm = leftArm;
+    avatar.userData.rightArm = rightArm;
+}
+
+// Animation loop
 function animate() {
-    // Placeholder - will be implemented with proper 3D avatar
+    animationId = requestAnimationFrame(animate);
+    
+    if (avatar) {
+        // Idle breathing animation
+        const time = Date.now() * 0.001;
+        const breathingIntensity = 0.02;
+        
+        // Breathing motion
+        if (avatar.userData.torso) {
+            avatar.userData.torso.scale.y = 1 + Math.sin(time * 2) * breathingIntensity;
+        }
+        
+        // Subtle head movement
+        if (avatar.userData.head) {
+            avatar.userData.head.rotation.y = Math.sin(time * 0.5) * 0.1;
+            avatar.userData.head.position.y = 1.7 + Math.sin(time * 2) * 0.01;
+        }
+        
+        // Eye blinking
+        if (avatar.userData.head && avatar.userData.head.userData) {
+            const blinkTime = time * 3;
+            const blinkPhase = Math.sin(blinkTime) > 0.95 ? 1 : 0;
+            
+            if (avatar.userData.head.userData.leftEye) {
+                avatar.userData.head.userData.leftEye.scale.y = 1 - blinkPhase * 0.8;
+                avatar.userData.head.userData.rightEye.scale.y = 1 - blinkPhase * 0.8;
+            }
+        }
+        
+        // Gentle swaying
+        avatar.rotation.y = Math.sin(time * 0.3) * 0.05;
+        avatar.position.y = -0.5 + Math.sin(time * 1.5) * 0.02;
+    }
+    
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
 }
 
+// Handle window resize
 function onWindowResize() {
-    // Placeholder - will be implemented with proper 3D avatar
+    if (camera && renderer && avatarContainer) {
+        const width = avatarContainer.clientWidth;
+        const height = avatarContainer.clientHeight;
+        
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+    }
+}
+
+// Avatar speaking animation (for lip-sync)
+function startSpeakingAnimation() {
+    if (avatar && avatar.userData.head && avatar.userData.head.userData.mouth) {
+        const mouth = avatar.userData.head.userData.mouth;
+        
+        // Simple mouth opening animation
+        const speakingAnimation = () => {
+            if (currentCallState === CALL_STATES.SPEAKING) {
+                const time = Date.now() * 0.01;
+                mouth.scale.y = 1 + Math.sin(time) * 0.3;
+                mouth.scale.x = 1 + Math.sin(time * 1.2) * 0.2;
+                requestAnimationFrame(speakingAnimation);
+            } else {
+                // Return to normal
+                mouth.scale.y = 1;
+                mouth.scale.x = 1;
+            }
+        };
+        
+        speakingAnimation();
+    }
+}
+
+// Avatar listening animation
+function startListeningAnimation() {
+    if (avatar && avatar.userData.head) {
+        // Subtle head tilt to show attentiveness
+        const head = avatar.userData.head;
+        head.rotation.z = Math.sin(Date.now() * 0.001) * 0.05;
+    }
 }
 
 // Initialize voice recording capability
