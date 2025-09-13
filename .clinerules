@@ -327,19 +327,27 @@ def test_api_chat_endpoint_returns_valid_response():
 - [x] Coqui TTS integration with Azure fallback
 - [x] Streaming audio pipeline foundation
 
-### Phase 2.5: Call Interface & 3D Avatar System 🚧 CURRENT PRIORITY
-- [ ] Transform chat interface to call interface layout
-- [ ] Add "Click to Enter Call" button after AI greeting
-- [ ] Implement WebAudio context unlock on user gesture
-- [ ] Create large 3D avatar container (16:9 responsive)
-- [ ] Set up Three.js scene for VRM 1.0 avatar rendering
+### Phase 2.5: Call Interface & 3D Avatar System ✅ COMPLETED
+- [x] Transform chat interface to call interface layout
+- [x] Add "Click to Enter Call" button after AI greeting
+- [x] Implement WebAudio context unlock on user gesture
+- [x] Create large 3D avatar container (16:9 responsive)
+- [x] Set up Three.js scene with basic 3D avatar rendering
+- [x] Implement call state machine (IDLE → GREETING → CALL_ACTIVE)
+- [x] Add streaming TTS with real-time lip-sync foundation
+- [x] Basic avatar animations (breathing, blinking, movement)
+- [x] Add call controls (mute, volume, end call)
+- [x] Test complete call experience end-to-end
+
+### Phase 2.6: Realistic Avatar Upgrade 🚧 CURRENT PRIORITY
+- [ ] Replace geometric avatar with VRM 1.0 realistic model
 - [ ] Integrate Ready Player Me for avatar creation
-- [ ] Implement call state machine (IDLE → GREETING → CALL_ACTIVE)
-- [ ] Add streaming TTS with real-time lip-sync
-- [ ] Implement phoneme-to-viseme mapping (ARKit blendshapes)
-- [ ] Add call controls (mute, volume, end call)
+- [ ] Fix avatar body connectivity and proportions issues
+- [ ] Add realistic materials and textures (PBR skin, hair, eyes)
+- [ ] Implement advanced phoneme-to-viseme mapping (ARKit blendshapes)
+- [ ] Add emotion-responsive facial expressions
 - [ ] Optimize for <800ms LLM, <300ms TTS, ±60ms lip-sync
-- [ ] Test complete call experience end-to-end
+- [ ] Test realistic avatar call experience end-to-end
 
 ### Phase 3: Real-time Emotion Detection 📋 PLANNED
 - [ ] MediaPipe Face Mesh integration
